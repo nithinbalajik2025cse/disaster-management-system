@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Smart Disaster Relief Tracker</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+    <nav class="navbar">
+        <a href="/" class="brand">
+            <span>🛡️ DisasterRelief AI</span>
+        </a>
+        <ul class="nav-links">
+            <li><a href="/dashboard" class="active">Dashboard</a></li>
+            <li><a href="/disasters">Disasters</a></li>
+            <li><a href="/resources">Resources</a></li>
+            <li><a href="/requests">Requests</a></li>
+            <li><a href="/volunteers">Volunteers</a></li>
+            <li><a href="/donations">Donations</a></li>
+        </ul>
+        <div id="userProfileDisplay" class="user-profile"></div>
+    </nav>
+
+    <main class="main-container">
+        <div class="page-header">
+            <div>
+                <h1 class="page-title">Relief Command Dashboard</h1>
+                <p class="page-subtitle">Real-time resource inventory, active emergency situations, and smart priority allocation engine</p>
+            </div>
+            <div>
+                <button id="runAllocationBtn" onclick="triggerSmartAllocation()" class="btn btn-accent" style="font-size: 1rem; padding: 0.75rem 1.5rem;">
+                    ⚡ RUN SMART ALLOCATION
+                </button>
+            </div>
+        </div>
+
+        <!-- Low Stock Banner -->
+        <div id="lowStockContainer"></div>
+
+        <!-- Metric Stat Cards -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-title">Active Disasters</div>
+                <div id="statActiveDisasters" class="stat-value" style="color:#f87171;">0</div>
+                <div id="statTotalDisasters" class="stat-sub">0 total registered</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-title">Pending Requests</div>
+                <div id="statPendingRequests" class="stat-value" style="color:#fbbf24;">0</div>
+                <div class="stat-sub">Awaiting allocation engine</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-title">Available Resources</div>
+                <div id="statAvailableResources" class="stat-value" style="color:#34d399;">0</div>
+                <div id="statLowStockItems" class="stat-sub">0 low stock items</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-title">Allocated Units</div>
+                <div id="statAllocatedResources" class="stat-value" style="color:#60a5fa;">0</div>
+                <div class="stat-sub">Distributed to affected areas</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-title">Volunteers</div>
+                <div id="statVolunteers" class="stat-value" style="color:#c084fc;">0</div>
+                <div class="stat-sub">Active field response workforce</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-title">Total Donations</div>
+                <div id="statDonations" class="stat-value" style="color:#38bdf8;">₹0</div>
+                <div class="stat-sub">Funds & material contributions</div>
+            </div>
+        </div>
+
+        <!-- Top Priority Requests Table -->
+        <div class="card-table">
+            <div class="table-header">
+                <span class="table-title">🔥 Highest Priority Resource Requests (PriorityQueue Ranking)</span>
+                <a href="/requests" class="btn btn-secondary" style="font-size:0.8rem;">View All Requests</a>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Req ID</th>
+                        <th>Disaster</th>
+                        <th>Resource Requested</th>
+                        <th>Req Qty</th>
+                        <th>Approved</th>
+                        <th>Critical People</th>
+                        <th>Waiting Hrs</th>
+                        <th>Priority Score</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="priorityRequestsTableBody">
+                    <tr>
+                        <td colspan="9" style="text-align:center; color: var(--text-muted);">Loading requests...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Recent Allocations Table -->
+        <div class="card-table">
+            <div class="table-header">
+                <span class="table-title">📋 Recent Priority Allocations Audit Log</span>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Alloc ID</th>
+                        <th>Request ID</th>
+                        <th>Resource</th>
+                        <th>Allocated Qty</th>
+                        <th>Priority Score</th>
+                        <th>Allocated At</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="recentAllocationsTableBody">
+                    <tr>
+                        <td colspan="7" style="text-align:center; color: var(--text-muted);">No allocation runs executed yet. Click "RUN SMART ALLOCATION".</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2026 Smart Disaster Relief Resource Allocation & Inventory Tracker</p>
+    </footer>
+
+    <script th:src="@{/js/app.js}"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            loadDashboardMetrics();
+            loadPriorityRequests();
+            loadRecentAllocations();
+        });
+
+        async function loadDashboardMetrics() {
+            try {
+                const summary = await apiFetch('/api/reports/dashboard');
+                document.getElementById('statActiveDisasters').innerText = summary.activeDisasters || 0;
+                document.getElementById('statTotalDisasters').innerText = `${summary.totalDisasters || 0} total registered`;
+                document.getElementById('statPendingRequests').innerText = summary.pendingRequests || 0;
+                document.getElementById('statAvailableResources').innerText = summary.availableResources || 0;
+                document.getElementById('statLowStockItems').innerText = `${summary.lowStockItems || 0} low-stock alerts`;
+                document.getElementById('statAllocatedResources').innerText = summary.allocatedResources || 0;
+                document.getElementById('statVolunteers').innerText = summary.totalVolunteers || 0;
+                document.getElementById('statDonations').innerText = `₹${(summary.totalDonations || 0).toLocaleString('en-IN')}`;
+
+                if (summary.lowStockItems > 0) {
+                    document.getElementById('lowStockContainer').innerHTML = `
+                        <div class="alert-box">
+                            <span style="font-size:1.5rem;">⚠️</span>
+                            <div>
+                                <strong>LOW STOCK WARNING:</strong> There are ${summary.lowStockItems} inventory items below minimum stock threshold!
+                                <a href="/resources" style="color:white; underline; font-weight:600; margin-left:10px;">Manage Inventory &rarr;</a>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    document.getElementById('lowStockContainer').innerHTML = '';
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function loadPriorityRequests() {
+            try {
+                const requests = await apiFetch('/api/requests');
+                const tbody = document.getElementById('priorityRequestsTableBody');
+                if (!requests || requests.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; color:var(--text-muted);">No requests registered yet.</td></tr>`;
+                    return;
+                }
+
+                // Sort by priorityScore desc
+                requests.sort((a, b) => (b.priorityScore || 0) - (a.priorityScore || 0));
+
+                tbody.innerHTML = requests.slice(0, 5).map(r => `
+                    <tr>
+                        <td>#${r.id}</td>
+                        <td>${r.disaster ? r.disaster.name : 'Disaster #' + r.disasterId}</td>
+                        <td>${r.resource ? r.resource.name : 'Resource #' + r.resourceId}</td>
+                        <td><strong>${r.requestedQuantity}</strong></td>
+                        <td>${r.approvedQuantity || 0}</td>
+                        <td>${r.criticalPeople || 0}</td>
+                        <td>${r.waitingHours || 0} hrs</td>
+                        <td><span class="badge badge-high" style="font-size:0.85rem;">${Math.round(r.priorityScore || 0)}</span></td>
+                        <td><span class="badge badge-${(r.status || 'PENDING').toLowerCase()}">${r.status}</span></td>
+                    </tr>
+                `).join('');
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function loadRecentAllocations() {
+            try {
+                const allocations = await apiFetch('/api/allocations');
+                const tbody = document.getElementById('recentAllocationsTableBody');
+                if (!allocations || allocations.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--text-muted);">No allocation runs executed yet.</td></tr>`;
+                    return;
+                }
+
+                allocations.sort((a, b) => new Date(b.allocatedAt) - new Date(a.allocatedAt));
+
+                tbody.innerHTML = allocations.slice(0, 5).map(a => `
+                    <tr>
+                        <td>#${a.id}</td>
+                        <td>Request #${a.requestId}</td>
+                        <td>${a.resource ? a.resource.name : 'Resource #' + a.resourceId}</td>
+                        <td><strong style="color:#34d399;">+${a.allocatedQuantity}</strong></td>
+                        <td><span class="badge badge-high">${Math.round(a.priorityScore || 0)}</span></td>
+                        <td>${new Date(a.allocatedAt).toLocaleString()}</td>
+                        <td><span class="badge badge-${(a.status || 'ALLOCATED').toLowerCase()}">${a.status}</span></td>
+                    </tr>
+                `).join('');
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function triggerSmartAllocation() {
+            const btn = document.getElementById('runAllocationBtn');
+            btn.disabled = true;
+            btn.innerHTML = '⚙️ RUNNING ALGORITHM...';
+
+            try {
+                const allocations = await apiFetch('/api/allocations/run', { method: 'POST' });
+                showToast(`Smart Priority Allocation executed successfully! ${allocations.length} allocations fulfilled.`, 'success');
+                loadDashboardMetrics();
+                loadPriorityRequests();
+                loadRecentAllocations();
+            } catch (err) {
+                showToast(err.message || 'Allocation run failed', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '⚡ RUN SMART ALLOCATION';
+            }
+        }
+    </script>
+</body>
+</html>

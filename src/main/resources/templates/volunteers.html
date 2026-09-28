@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Volunteers - Disaster Relief</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+    <nav class="navbar">
+        <a href="/" class="brand">
+            <span>🛡️ DisasterRelief AI</span>
+        </a>
+        <ul class="nav-links">
+            <li><a href="/dashboard">Dashboard</a></li>
+            <li><a href="/disasters">Disasters</a></li>
+            <li><a href="/resources">Resources</a></li>
+            <li><a href="/requests">Requests</a></li>
+            <li><a href="/volunteers" class="active">Volunteers</a></li>
+            <li><a href="/donations">Donations</a></li>
+        </ul>
+        <div id="userProfileDisplay" class="user-profile"></div>
+    </nav>
+
+    <main class="main-container">
+        <div class="page-header">
+            <div>
+                <h1 class="page-title">Relief Volunteer Management</h1>
+                <p class="page-subtitle">Roster of registered field volunteers, skill sets, availability, and disaster assignment</p>
+            </div>
+            <div>
+                <button onclick="openModal('addVolunteerModal')" class="btn btn-primary">+ Register Volunteer</button>
+            </div>
+        </div>
+
+        <div class="card-table">
+            <div class="table-header">
+                <span class="table-title">Active Field Volunteers Roster</span>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Phone</th>
+                        <th>Email</th>
+                        <th>Skill Set</th>
+                        <th>Location</th>
+                        <th>Availability</th>
+                        <th>Assigned Disaster</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="volunteersTableBody">
+                    <tr><td colspan="9" style="text-align:center;">Loading volunteers...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <!-- Modal for Register Volunteer -->
+    <div id="addVolunteerModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 style="font-size: 1.25rem;">Register Volunteer</h3>
+                <button onclick="closeModal('addVolunteerModal')" class="close-btn">&times;</button>
+            </div>
+            <form id="volunteerForm">
+                <div class="form-group">
+                    <label>Full Name</label>
+                    <input type="text" id="vName" class="form-control" placeholder="e.g. Ramesh Kumar" required>
+                </div>
+                <div style="display:flex; gap:1rem;">
+                    <div class="form-group" style="flex:1;">
+                        <label>Phone Number</label>
+                        <input type="text" id="vPhone" class="form-control" placeholder="+91 9876543210" required>
+                    </div>
+                    <div class="form-group" style="flex:1;">
+                        <label>Email Address</label>
+                        <input type="email" id="vEmail" class="form-control" placeholder="ramesh@email.com" required>
+                    </div>
+                </div>
+                <div style="display:flex; gap:1rem;">
+                    <div class="form-group" style="flex:1;">
+                        <label>Specialized Skill</label>
+                        <select id="vSkill" class="form-control" required>
+                            <option value="MEDICAL">MEDICAL</option>
+                            <option value="RESCUE">RESCUE</option>
+                            <option value="TRANSPORT">TRANSPORT</option>
+                            <option value="FOOD_DISTRIBUTION">FOOD_DISTRIBUTION</option>
+                            <option value="GENERAL" selected>GENERAL</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="flex:1;">
+                        <label>Availability</label>
+                        <select id="vAvailability" class="form-control" required>
+                            <option value="AVAILABLE" selected>AVAILABLE</option>
+                            <option value="BUSY">BUSY</option>
+                            <option value="OFFLINE">OFFLINE</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Location Base</label>
+                    <input type="text" id="vLocation" class="form-control" placeholder="e.g. Chennai Central" required>
+                </div>
+                <div class="form-group">
+                    <label>Assigned Disaster (Optional)</label>
+                    <input type="text" id="vAssigned" class="form-control" placeholder="e.g. Flood - Chennai">
+                </div>
+                <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center;">Register Volunteer</button>
+            </form>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2026 Smart Disaster Relief Resource Allocation & Inventory Tracker</p>
+    </footer>
+
+    <script th:src="@{/js/app.js}"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', loadVolunteers);
+
+        async function loadVolunteers() {
+            try {
+                const list = await apiFetch('/api/volunteers');
+                const tbody = document.getElementById('volunteersTableBody');
+                if (!list || list.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; color:var(--text-muted);">No volunteers registered.</td></tr>`;
+                    return;
+                }
+
+                tbody.innerHTML = list.map(v => `
+                    <tr>
+                        <td>#${v.id}</td>
+                        <td><strong>${v.name}</strong></td>
+                        <td>${v.phone || '-'}</td>
+                        <td>${v.email || '-'}</td>
+                        <td><span class="badge badge-medium">${v.skill}</span></td>
+                        <td>${v.location || '-'}</td>
+                        <td><span class="badge badge-${v.availability.toLowerCase()}">${v.availability}</span></td>
+                        <td>${v.assignedDisaster || 'Unassigned'}</td>
+                        <td>
+                            <button onclick="deleteVolunteer(${v.id})" class="btn btn-danger" style="padding:0.25rem 0.5rem; font-size:0.75rem;">Delete</button>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        document.getElementById('volunteerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const payload = {
+                name: document.getElementById('vName').value,
+                phone: document.getElementById('vPhone').value,
+                email: document.getElementById('vEmail').value,
+                skill: document.getElementById('vSkill').value,
+                availability: document.getElementById('vAvailability').value,
+                location: document.getElementById('vLocation').value,
+                assignedDisaster: document.getElementById('vAssigned').value
+            };
+
+            try {
+                await apiFetch('/api/volunteers', {
+                    method: 'POST',
+                    body: JSON.stringify(payload)
+                });
+                showToast('Volunteer registered!', 'success');
+                closeModal('addVolunteerModal');
+                loadVolunteers();
+            } catch (err) {
+                showToast(err.message || 'Error registering volunteer', 'error');
+            }
+        });
+
+        async function deleteVolunteer(id) {
+            if (!confirm('Remove volunteer record?')) return;
+            try {
+                await apiFetch(`/api/volunteers/${id}`, { method: 'DELETE' });
+                showToast('Volunteer removed', 'success');
+                loadVolunteers();
+            } catch (err) {
+                showToast(err.message || 'Delete failed', 'error');
+            }
+        }
+    </script>
+</body>
+</html>

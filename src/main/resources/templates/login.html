@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Disaster Relief Tracker</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+    <nav class="navbar">
+        <a href="/" class="brand">
+            <span>🛡️ DisasterRelief AI</span>
+        </a>
+        <ul class="nav-links">
+            <li><a href="/">Home</a></li>
+            <li><a href="/login" class="active">Login</a></li>
+        </ul>
+    </nav>
+
+    <main class="main-container" style="display:flex; justify-content:center; align-items:center; min-height: calc(100vh - 160px);">
+        <div class="stat-card" style="width:100%; max-width:420px; padding: 2.5rem;">
+            <h2 style="font-size: 1.6rem; font-weight:700; text-align:center; margin-bottom: 0.5rem;">System Authentication</h2>
+            <p style="text-align:center; color: var(--text-secondary); font-size:0.9rem; margin-bottom: 2rem;">Sign in to access disaster management controls</p>
+            
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" class="form-control" placeholder="e.g. admin, coord1, vol1" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" class="form-control" placeholder="Enter password" required>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center; margin-top: 1.5rem; padding:0.85rem;">Login to Platform</button>
+            </form>
+
+            <div style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--border-color); font-size: 0.85rem; color: var(--text-muted);">
+                <p><strong>Demo Roles Credentials:</strong></p>
+                <ul style="margin-left: 1.25rem; margin-top: 0.5rem; display:flex; flex-direction:column; gap:0.25rem;">
+                    <li>ADMIN: <code>admin</code> / <code>admin123</code></li>
+                    <li>COORDINATOR: <code>coord1</code> / <code>coord123</code></li>
+                    <li>VOLUNTEER: <code>vol1</code> / <code>vol123</code></li>
+                </ul>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2026 Smart Disaster Relief Tracker System</p>
+    </footer>
+
+    <script th:src="@{/js/app.js}"></script>
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                const res = await apiFetch('/api/auth/login', {
+                    method: 'POST',
+                    body: JSON.stringify({ username, password })
+                });
+                
+                if (res.success) {
+                    localStorage.setItem('username', res.username);
+                    localStorage.setItem('role', res.role);
+                    localStorage.setItem('name', res.name);
+                    showToast('Login successful! Redirecting to Dashboard...', 'success');
+                    setTimeout(() => {
+                        window.location.href = '/dashboard';
+                    }, 1000);
+                } else {
+                    showToast(res.message || 'Login failed', 'error');
+                }
+            } catch (err) {
+                showToast(err.message || 'Invalid credentials', 'error');
+            }
+        });
+    </script>
+</body>
+</html>

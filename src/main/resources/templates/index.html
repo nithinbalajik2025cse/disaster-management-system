@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Disaster Relief Tracker</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+    <nav class="navbar">
+        <a href="/" class="brand">
+            <span>🛡️ DisasterRelief AI</span>
+        </a>
+        <ul class="nav-links">
+            <li><a href="/" class="active">Home</a></li>
+            <li><a href="/dashboard">Dashboard</a></li>
+            <li><a href="/disasters">Disasters</a></li>
+            <li><a href="/resources">Resources</a></li>
+            <li><a href="/requests">Requests</a></li>
+            <li><a href="/volunteers">Volunteers</a></li>
+            <li><a href="/donations">Donations</a></li>
+            <li><a href="/login" class="btn btn-primary">Login</a></li>
+        </ul>
+    </nav>
+
+    <main class="main-container" style="display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; padding: 5rem 2rem;">
+        <span class="badge badge-medium" style="margin-bottom: 1.5rem; padding: 0.5rem 1.25rem; font-size: 0.9rem;">
+            Smart Priority Allocation Algorithm inside Java PriorityQueue
+        </span>
+        <h1 style="font-size: 3.2rem; font-weight: 800; line-height: 1.2; margin-bottom: 1.5rem; background: linear-gradient(135deg, #ffffff, #94a3b8); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+            Smart Disaster Relief Resource Allocation & Inventory Tracker
+        </h1>
+        <p style="font-size: 1.2rem; color: var(--text-secondary); max-width: 750px; margin-bottom: 2.5rem; line-height: 1.6;">
+            Empowering disaster response teams with deterministic priority scoring, real-time resource allocation, automated inventory tracking, and volunteer management.
+        </p>
+
+        <div style="display:flex; gap: 1.5rem; justify-content: center;">
+            <a href="/dashboard" class="btn btn-primary" style="padding: 0.85rem 2rem; font-size: 1.1rem;">Explore Dashboard</a>
+            <a href="/login" class="btn btn-secondary" style="padding: 0.85rem 2rem; font-size: 1.1rem;">Coordinator Login</a>
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2026 Smart Disaster Relief Tracker System | Clean Spring Boot Architecture & Java PriorityQueue Engine</p>
+    </footer>
+
+    <script th:src="@{/js/app.js}"></script>
+</body>
+</html>

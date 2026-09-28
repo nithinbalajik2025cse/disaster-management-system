@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Donation Tracker - Disaster Relief</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+    <nav class="navbar">
+        <a href="/" class="brand">
+            <span>🛡️ DisasterRelief AI</span>
+        </a>
+        <ul class="nav-links">
+            <li><a href="/dashboard">Dashboard</a></li>
+            <li><a href="/disasters">Disasters</a></li>
+            <li><a href="/resources">Resources</a></li>
+            <li><a href="/requests">Requests</a></li>
+            <li><a href="/volunteers">Volunteers</a></li>
+            <li><a href="/donations" class="active">Donations</a></li>
+        </ul>
+        <div id="userProfileDisplay" class="user-profile"></div>
+    </nav>
+
+    <main class="main-container">
+        <div class="page-header">
+            <div>
+                <h1 class="page-title">Relief Donation Tracker</h1>
+                <p class="page-subtitle">Track financial contributions and material donations for disaster relief operations</p>
+            </div>
+            <div>
+                <button onclick="openModal('addDonationModal')" class="btn btn-primary">+ Record New Donation</button>
+            </div>
+        </div>
+
+        <div class="card-table">
+            <div class="table-header">
+                <span class="table-title">Received Donations Audit Log</span>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Donor Name</th>
+                        <th>Donor Email</th>
+                        <th>Type</th>
+                        <th>Amount (₹)</th>
+                        <th>Resource Item</th>
+                        <th>Quantity</th>
+                        <th>Donated At</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="donationsTableBody">
+                    <tr><td colspan="9" style="text-align:center;">Loading donations...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <!-- Modal for Record Donation -->
+    <div id="addDonationModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 style="font-size: 1.25rem;">Record Relief Donation</h3>
+                <button onclick="closeModal('addDonationModal')" class="close-btn">&times;</button>
+            </div>
+            <form id="donationForm">
+                <div class="form-group">
+                    <label>Donor Name</label>
+                    <input type="text" id="donName" class="form-control" placeholder="e.g. Tata Relief Trust" required>
+                </div>
+                <div class="form-group">
+                    <label>Donor Email</label>
+                    <input type="email" id="donEmail" class="form-control" placeholder="contact@donor.org">
+                </div>
+                <div class="form-group">
+                    <label>Donation Type</label>
+                    <select id="donType" class="form-control" required>
+                        <option value="MONEY" selected>MONEY (Financial)</option>
+                        <option value="FOOD">FOOD</option>
+                        <option value="WATER">WATER</option>
+                        <option value="MEDICINE">MEDICINE</option>
+                        <option value="CLOTHING">CLOTHING</option>
+                        <option value="OTHER">OTHER</option>
+                    </select>
+                </div>
+                <div style="display:flex; gap:1rem;">
+                    <div class="form-group" style="flex:1;">
+                        <label>Monetary Amount (₹)</label>
+                        <input type="number" id="donAmount" class="form-control" value="25000">
+                    </div>
+                    <div class="form-group" style="flex:1;">
+                        <label>Material Qty (if applicable)</label>
+                        <input type="number" id="donQty" class="form-control" value="0">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Resource Description (if material)</label>
+                    <input type="text" id="donResource" class="form-control" placeholder="e.g. 100 blankets / 50 water boxes">
+                </div>
+                <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center;">Save Donation Record</button>
+            </form>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2026 Smart Disaster Relief Resource Allocation & Inventory Tracker</p>
+    </footer>
+
+    <script th:src="@{/js/app.js}"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', loadDonations);
+
+        async function loadDonations() {
+            try {
+                const list = await apiFetch('/api/donations');
+                const tbody = document.getElementById('donationsTableBody');
+                if (!list || list.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; color:var(--text-muted);">No donations recorded.</td></tr>`;
+                    return;
+                }
+
+                tbody.innerHTML = list.map(d => `
+                    <tr>
+                        <td>#${d.id}</td>
+                        <td><strong>${d.donorName}</strong></td>
+                        <td>${d.donorEmail || '-'}</td>
+                        <td><span class="badge badge-medium">${d.donationType}</span></td>
+                        <td><strong style="color:#38bdf8;">₹${(d.amount || 0).toLocaleString('en-IN')}</strong></td>
+                        <td>${d.resourceName || '-'}</td>
+                        <td>${d.quantity || 0}</td>
+                        <td>${new Date(d.donatedAt).toLocaleString()}</td>
+                        <td>
+                            <button onclick="deleteDonation(${d.id})" class="btn btn-danger" style="padding:0.25rem 0.5rem; font-size:0.75rem;">Delete</button>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        document.getElementById('donationForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const payload = {
+                donorName: document.getElementById('donName').value,
+                donorEmail: document.getElementById('donEmail').value,
+                donationType: document.getElementById('donType').value,
+                amount: parseFloat(document.getElementById('donAmount').value) || 0,
+                quantity: parseInt(document.getElementById('donQty').value) || 0,
+                resourceName: document.getElementById('donResource').value
+            };
+
+            try {
+                await apiFetch('/api/donations', {
+                    method: 'POST',
+                    body: JSON.stringify(payload)
+                });
+                showToast('Donation recorded!', 'success');
+                closeModal('addDonationModal');
+                loadDonations();
+            } catch (err) {
+                showToast(err.message || 'Error recording donation', 'error');
+            }
+        });
+
+        async function deleteDonation(id) {
+            if (!confirm('Delete donation record?')) return;
+            try {
+                await apiFetch(`/api/donations/${id}`, { method: 'DELETE' });
+                showToast('Donation deleted', 'success');
+                loadDonations();
+            } catch (err) {
+                showToast(err.message || 'Delete failed', 'error');
+            }
+        }
+    </script>
+</body>
+</html>

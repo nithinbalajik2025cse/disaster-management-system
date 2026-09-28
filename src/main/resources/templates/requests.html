@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resource Requests - Disaster Relief</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+    <nav class="navbar">
+        <a href="/" class="brand">
+            <span>🛡️ DisasterRelief AI</span>
+        </a>
+        <ul class="nav-links">
+            <li><a href="/dashboard">Dashboard</a></li>
+            <li><a href="/disasters">Disasters</a></li>
+            <li><a href="/resources">Resources</a></li>
+            <li><a href="/requests" class="active">Requests</a></li>
+            <li><a href="/volunteers">Volunteers</a></li>
+            <li><a href="/donations">Donations</a></li>
+        </ul>
+        <div id="userProfileDisplay" class="user-profile"></div>
+    </nav>
+
+    <main class="main-container">
+        <div class="page-header">
+            <div>
+                <h1 class="page-title">Disaster Resource Requests</h1>
+                <p class="page-subtitle">Submit relief requests for affected zones & view calculated priority queue scores</p>
+            </div>
+            <div>
+                <button onclick="openRequestModal()" class="btn btn-primary">+ Create New Request</button>
+            </div>
+        </div>
+
+        <div class="card-table">
+            <div class="table-header">
+                <span class="table-title">Resource Allocation Requests Queue</span>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Req ID</th>
+                        <th>Disaster</th>
+                        <th>Resource</th>
+                        <th>Req Qty</th>
+                        <th>Approved Qty</th>
+                        <th>Critical People</th>
+                        <th>Affected People</th>
+                        <th>Waiting Hrs</th>
+                        <th>Priority Score</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="requestsTableBody">
+                    <tr><td colspan="11" style="text-align:center;">Loading resource requests...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <!-- Modal for Create Request -->
+    <div id="addRequestModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 style="font-size: 1.25rem;">Create Resource Request</h3>
+                <button onclick="closeModal('addRequestModal')" class="close-btn">&times;</button>
+            </div>
+            <form id="requestForm">
+                <div class="form-group">
+                    <label>Select Disaster Area</label>
+                    <select id="reqDisasterId" class="form-control" required></select>
+                </div>
+                <div class="form-group">
+                    <label>Select Resource Item</label>
+                    <select id="reqResourceId" class="form-control" required></select>
+                </div>
+                <div style="display:flex; gap:1rem;">
+                    <div class="form-group" style="flex:1;">
+                        <label>Requested Quantity</label>
+                        <input type="number" id="reqQuantity" class="form-control" value="100" required>
+                    </div>
+                    <div class="form-group" style="flex:1;">
+                        <label>Waiting Hours</label>
+                        <input type="number" id="reqWaiting" class="form-control" value="5" required>
+                    </div>
+                </div>
+                <div style="display:flex; gap:1rem;">
+                    <div class="form-group" style="flex:1;">
+                        <label>Critical People Count</label>
+                        <input type="number" id="reqCritical" class="form-control" value="50" required>
+                    </div>
+                    <div class="form-group" style="flex:1;">
+                        <label>Affected People Count</label>
+                        <input type="number" id="reqAffected" class="form-control" value="300" required>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center;">Submit Resource Request</button>
+            </form>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2026 Smart Disaster Relief Resource Allocation & Inventory Tracker</p>
+    </footer>
+
+    <script th:src="@{/js/app.js}"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', loadRequests);
+
+        async function loadRequests() {
+            try {
+                const list = await apiFetch('/api/requests');
+                const tbody = document.getElementById('requestsTableBody');
+                if (!list || list.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="11" style="text-align:center; color:var(--text-muted);">No resource requests found.</td></tr>`;
+                    return;
+                }
+
+                tbody.innerHTML = list.map(r => `
+                    <tr>
+                        <td>#${r.id}</td>
+                        <td>${r.disaster ? r.disaster.name : 'Disaster #' + r.disasterId}</td>
+                        <td>${r.resource ? r.resource.name : 'Resource #' + r.resourceId}</td>
+                        <td><strong>${r.requestedQuantity}</strong></td>
+                        <td><span style="color:#34d399; font-weight:700;">${r.approvedQuantity || 0}</span></td>
+                        <td>${r.criticalPeople}</td>
+                        <td>${r.affectedPeople}</td>
+                        <td>${r.waitingHours} hrs</td>
+                        <td><span class="badge badge-high" style="font-size:0.85rem;">${Math.round(r.priorityScore || 0)}</span></td>
+                        <td><span class="badge badge-${(r.status || 'PENDING').toLowerCase()}">${r.status}</span></td>
+                        <td>
+                            <button onclick="deleteRequest(${r.id})" class="btn btn-danger" style="padding:0.25rem 0.5rem; font-size:0.75rem;">Delete</button>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function openRequestModal() {
+            try {
+                const disasters = await apiFetch('/api/disasters');
+                const resources = await apiFetch('/api/resources');
+
+                const dSelect = document.getElementById('reqDisasterId');
+                dSelect.innerHTML = disasters.map(d => `<option value="${d.id}">${d.name} (${d.priorityLevel})</option>`).join('');
+
+                const rSelect = document.getElementById('reqResourceId');
+                rSelect.innerHTML = resources.map(r => `<option value="${r.id}">${r.name} (Available: ${r.quantity} ${r.unit})</option>`).join('');
+
+                openModal('addRequestModal');
+            } catch (err) {
+                showToast('Failed to load disaster/resource options', 'error');
+            }
+        }
+
+        document.getElementById('requestForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const payload = {
+                disasterId: parseInt(document.getElementById('reqDisasterId').value),
+                resourceId: parseInt(document.getElementById('reqResourceId').value),
+                requestedQuantity: parseInt(document.getElementById('reqQuantity').value),
+                waitingHours: parseInt(document.getElementById('reqWaiting').value),
+                criticalPeople: parseInt(document.getElementById('reqCritical').value),
+                affectedPeople: parseInt(document.getElementById('reqAffected').value)
+            };
+
+            try {
+                await apiFetch('/api/requests', {
+                    method: 'POST',
+                    body: JSON.stringify(payload)
+                });
+                showToast('Resource request created with priority score calculation!', 'success');
+                closeModal('addRequestModal');
+                loadRequests();
+            } catch (err) {
+                showToast(err.message || 'Error submitting request', 'error');
+            }
+        });
+
+        async function deleteRequest(id) {
+            if (!confirm('Delete this request?')) return;
+            try {
+                await apiFetch(`/api/requests/${id}`, { method: 'DELETE' });
+                showToast('Request deleted', 'success');
+                loadRequests();
+            } catch (err) {
+                showToast(err.message || 'Delete failed', 'error');
+            }
+        }
+    </script>
+</body>
+</html>

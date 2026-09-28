@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Disaster Management - Disaster Relief</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+    <nav class="navbar">
+        <a href="/" class="brand">
+            <span>🛡️ DisasterRelief AI</span>
+        </a>
+        <ul class="nav-links">
+            <li><a href="/dashboard">Dashboard</a></li>
+            <li><a href="/disasters" class="active">Disasters</a></li>
+            <li><a href="/resources">Resources</a></li>
+            <li><a href="/requests">Requests</a></li>
+            <li><a href="/volunteers">Volunteers</a></li>
+            <li><a href="/donations">Donations</a></li>
+        </ul>
+        <div id="userProfileDisplay" class="user-profile"></div>
+    </nav>
+
+    <main class="main-container">
+        <div class="page-header">
+            <div>
+                <h1 class="page-title">Disaster Emergency Situations</h1>
+                <p class="page-subtitle">Register, update, and manage active disaster situations and priority severity</p>
+            </div>
+            <div>
+                <button onclick="openModal('addDisasterModal')" class="btn btn-primary">+ Register New Disaster</button>
+            </div>
+        </div>
+
+        <div class="card-table">
+            <div class="table-header">
+                <span class="table-title">Active & Resolved Disasters</span>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Disaster Name</th>
+                        <th>Type</th>
+                        <th>Location</th>
+                        <th>Priority Level</th>
+                        <th>Affected</th>
+                        <th>Critical</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="disastersTableBody">
+                    <tr><td colspan="9" style="text-align:center;">Loading disasters...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <!-- Modal for Register Disaster -->
+    <div id="addDisasterModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 style="font-size: 1.25rem;">Register Disaster Situation</h3>
+                <button onclick="closeModal('addDisasterModal')" class="close-btn">&times;</button>
+            </div>
+            <form id="disasterForm">
+                <div class="form-group">
+                    <label>Disaster Name</label>
+                    <input type="text" id="dName" class="form-control" placeholder="e.g. Flood - Chennai North" required>
+                </div>
+                <div class="form-group">
+                    <label>Disaster Type</label>
+                    <select id="dType" class="form-control" required>
+                        <option value="FLOOD">FLOOD</option>
+                        <option value="EARTHQUAKE">EARTHQUAKE</option>
+                        <option value="CYCLONE">CYCLONE</option>
+                        <option value="LANDSLIDE">LANDSLIDE</option>
+                        <option value="DROUGHT">DROUGHT</option>
+                        <option value="FIRE">FIRE</option>
+                        <option value="TSUNAMI">TSUNAMI</option>
+                        <option value="OTHER">OTHER</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Location</label>
+                    <input type="text" id="dLocation" class="form-control" placeholder="e.g. Chennai Coastal District" required>
+                </div>
+                <div class="form-group">
+                    <label>Priority Level</label>
+                    <select id="dPriority" class="form-control" required>
+                        <option value="CRITICAL">CRITICAL (Weight 4)</option>
+                        <option value="HIGH">HIGH (Weight 3)</option>
+                        <option value="MEDIUM" selected>MEDIUM (Weight 2)</option>
+                        <option value="LOW">LOW (Weight 1)</option>
+                    </select>
+                </div>
+                <div style="display:flex; gap:1rem;">
+                    <div class="form-group" style="flex:1;">
+                        <label>Affected People</label>
+                        <input type="number" id="dAffected" class="form-control" value="500" required>
+                    </div>
+                    <div class="form-group" style="flex:1;">
+                        <label>Critical People</label>
+                        <input type="number" id="dCritical" class="form-control" value="50" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Description</label>
+                    <textarea id="dDescription" class="form-control" rows="2" placeholder="Provide situational details..."></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center;">Save Disaster Record</button>
+            </form>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2026 Smart Disaster Relief Resource Allocation & Inventory Tracker</p>
+    </footer>
+
+    <script th:src="@{/js/app.js}"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', loadDisasters);
+
+        async function loadDisasters() {
+            try {
+                const list = await apiFetch('/api/disasters');
+                const tbody = document.getElementById('disastersTableBody');
+                if (!list || list.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; color:var(--text-muted);">No disaster situations recorded.</td></tr>`;
+                    return;
+                }
+
+                tbody.innerHTML = list.map(d => `
+                    <tr>
+                        <td>#${d.id}</td>
+                        <td><strong>${d.name}</strong></td>
+                        <td>${d.type}</td>
+                        <td>${d.location}</td>
+                        <td><span class="badge badge-${d.priorityLevel.toLowerCase()}">${d.priorityLevel}</span></td>
+                        <td>${d.affectedPeople}</td>
+                        <td><strong style="color:#f87171;">${d.criticalPeople}</strong></td>
+                        <td><span class="badge badge-${d.status.toLowerCase()}">${d.status}</span></td>
+                        <td>
+                            <button onclick="deleteDisaster(${d.id})" class="btn btn-danger" style="padding:0.25rem 0.5rem; font-size:0.75rem;">Delete</button>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        document.getElementById('disasterForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const payload = {
+                name: document.getElementById('dName').value,
+                type: document.getElementById('dType').value,
+                location: document.getElementById('dLocation').value,
+                priorityLevel: document.getElementById('dPriority').value,
+                affectedPeople: parseInt(document.getElementById('dAffected').value),
+                criticalPeople: parseInt(document.getElementById('dCritical').value),
+                description: document.getElementById('dDescription').value
+            };
+
+            try {
+                await apiFetch('/api/disasters', {
+                    method: 'POST',
+                    body: JSON.stringify(payload)
+                });
+                showToast('Disaster registered successfully!', 'success');
+                closeModal('addDisasterModal');
+                loadDisasters();
+            } catch (err) {
+                showToast(err.message || 'Error saving disaster', 'error');
+            }
+        });
+
+        async function deleteDisaster(id) {
+            if (!confirm('Are you sure you want to delete this disaster record?')) return;
+            try {
+                await apiFetch(`/api/disasters/${id}`, { method: 'DELETE' });
+                showToast('Disaster record deleted', 'success');
+                loadDisasters();
+            } catch (err) {
+                showToast(err.message || 'Delete failed', 'error');
+            }
+        }
+    </script>
+</body>
+</html>
